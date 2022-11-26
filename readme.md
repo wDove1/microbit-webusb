@@ -153,7 +153,26 @@ Any message that doesn't include a colon is a console message. Console messages 
 The micro:bit console messages (`serial write` blocks and `serial.*` TypeScript commands) are directed over the USB interface.  They actually go through ARM's [CMSIS-DAP](https://arm-software.github.io/CMSIS_5/DAP/html/index.html). DAP is described as:
 > CMSIS-DAP is a specification and a implementation of a Firmware that supports access to the CoreSight Debug Access Port (DAP).
 
-DAP has several [well defined commands](https://arm-software.github.io/CMSIS_5/DAP/html/group__DAP__Commands__gr.html) as well as the ability to support custom vendor commands.  Messages begin with a byte indicating the command type.  The firmware in the micro:bit supports two custom messages that are used to configure the baud rate 
+DAP has several [well defined commands](https://arm-software.github.io/CMSIS_5/DAP/html/group__DAP__Commands__gr.html) as well as the ability to support custom vendor commands.  Messages begin with a byte indicating the command type.  The firmware in the micro:bit supports two custom messages that are used to configure the baud rate.
+
+
+## DAPJS 
+
+Current work uses [DAPJS](https://github.com/ARMmbed/dapjs).  
+
+Get the DAPJS file:
+
+```
+mkdir temp
+cd temp
+dcp node_modules/dapjs/dist/dap.umd.js ..
+cd ..
+rm -Rf temp
+```
+
+
+
+# Below is old info from sniffing out USB UART
 
 ## Micro:bit USB Configuration Sequence
 
@@ -285,6 +304,225 @@ Based on [https://www.umpah.net/how-to-sniff-usb-traffic-reverse-engineer-usb-de
 14. [4, 0, 80, 0, 0, 0] // DAP_TransferConfigure 
 15. [19, 0] // DAP_SWD_Configure default
 16. [18, 56, 255, 255, 255, 255, 255, 255, 255]  // DAP_SWJ_Sequence
+
+
+## Captured / Decoded USB Sequence from Makecode for v2.21
+
+1. .then(() => device.selectConfiguration(1))
+2. .then(() => device.claimInterface(5))
+
+
+3. Transfer out 5, [5, 0, 4, 8, 0, 0, 0, 0, 1, 82, 0, 0, 35, 5, 240, 237, 0, 224, 13, 3, 0, 95, 160]
+    ID_DAP_Transfer https://arm-software.github.io/CMSIS_5/DAP/html/group__DAP__Transfer.html
+    index 0, transfer 4
+    8, 0, 0, 0,   0, 1, 82, 0,   0, 35, 5, 240, 237, 0, 224, 13, 3, 0, 95, 160
+   https://arm-software.github.io/CMSIS_5/DAP/html/group__DAP__Transfer.html
+
+
+ BYTE | BYTE *****| BYTE **********| BYTE *************| WORD *********|
+> 0x05 | DAP Index | Transfer Count | Transfer Request  | Transfer Data |
+>  5,         0,            4,         
+>         8: 0, 0, 0, 0      //write A3 Register Address bit 3. ???
+>         1:  82, 0, 0, 35,     write to access port
+>          5: 240, 237, 0, 224  a2 register write to AP ???
+>          13:, 3, 0, 95, 160   a3 and a2 
+
+
+
+1. Transfer in 5, 64
+ ID_DAP_Vendor0  ???
+6. Transfer out 5, [0,4]
+      1. ID_DAP_Info / 0x04 = Get the CMSIS-DAP Protocol Version (string).
+7. Transfer in 5, 64
+8. Transfer out 5,[128]    0x80?
+   1. 
+9.  Transfer in 5, 64
+10. Transfer out 5,[130, 0, 194, 1, 0]   0x82
+11. Transfer in 5, 64
+12. Transfer out 5,[0, 254]  // Get the maximum Packet Count (BYTE).
+13. Transfer in 5, 64
+
+14. Transfer out 5,[17, 128, 150, 152, 0]   //MMM
+    1.  DAP_SWJ_Clock https://arm-software.github.io/CMSIS_5/DAP/html/group__DAP__SWJ__Clock.html
+15. Transfer in 5, 64
+16. Transfer out 5,[2, 0]
+17. Transfer in 5, 64
+
+18. Transfer out 5,[17, 128, 150, 152, 0]
+    1.  ID_DAP_SWJ_Clock  ... ???
+19. Transfer in 5, 64
+20. Transfer out 5,[4, 0, 80, 0, 0, 0]
+    1.  ID_DAP_TransferConfigure
+    2.    0 idle cyclles 
+    3.    80, 0, wait retry
+    4.    00 00 match retry
+21. Transfer in 5, 64
+22. Transfer out 5,[19, 0]
+    1.  DAP_SWD_Configure
+23. Transfer in 5, 64
+24. Transfer out 5,[18, 56, 255, 255, 255, 255, 255, 255, 255]
+    1.  ID_DAP_SWJ_Sequence
+25. Transfer in 5, 64
+26. Transfer out 5,[18, 16, 158, 231]
+    1.  ID_DAP_SWJ_Sequence
+27. Transfer in 5, 64
+28. Transfer out 5,[18, 56, 255, 255, 255, 255, 255, 255, 255]
+29. Transfer in 5, 64
+30. Transfer out 5,[18, 8, 0]
+31. Transfer in 5, 64
+Connected
+Transfer out 5, [5, 0, 1, 2]
+Transfer out 5, [5, 0, 4, 0, 4, 0, 0, 0, 8, 0, 0, 0, 0, 4, 0, 0, 0, 80, 6]
+Transfer out 5, [5, 0, 4, 4, 0, 15, 0, 80, 8, 0, 0, 0, 0, 8, 240, 0, 0, 0, 15]
+Transfer out 5, [5, 0, 4, 8, 0, 0, 0, 0, 1, 82, 0, 0, 35, 5, 0, 32, 0, 224, 15]
+Breakpoints messqge
+Transfer out 5, [5, 0, 4, 8, 0, 0, 0, 0, 1, 82, 0, 0, 35, 5, 0, 32, 0, 224, 13, 2, 0, 0, 0]
+Transfer out 5, [5, 0, 4, 8, 0, 0, 0, 0, 1, 82, 0, 0, 35, 5, 8, 32, 0, 224, 13, 0, 0, 0, 0]
+Transfer out 5, []
+Transfer out 5, []
+Transfer out 5, []
+Transfer out 5, []
+Transfer out 5, []
+Transfer out 5, []
+Transfer out 5, []
+
+// product id 516
+
+
+6. Transfer out 5,[17, 128, 150, 152, 0]
+6. Transfer out 5,[2, 0]
+5. Transfer out 5,[19, 0]
+6. Transfer out 5,[130, 0, 194, 1, 0]
+
+
+
+ok from here on
+
+1. [130, 0, 194, 1, 0]
+Connecting...
+7. [0,254]
+8. [17, 128, 150, 152, 0]
+9. [2,0]
+10. [17, 128, 150, 152, 0]
+11. [4, 0, 80, 0, 0, 0]
+12. [19, 0]
+13. [18, 56, 255, 255, 255, 255, 255, 255, 255]
+14. [18, 16, 158, 23]
+
+
+
+
+// https://github.com/ARMmbed/DAPLink/blob/main/source/daplink/cmsis-dap/DAP.h
+
+selectConfiguration(1)
+claimInterface(5)  (or 4 for older uBits)
+transferOut([5, 0, 4, 8, 0, 0, 0, 0, 1, 82, 0, 0, 35, 5, 240, 237, 0, 224, 13, 3, 0, 95, 160])
+transferOut([0, 4,])
+transferOut([128])
+transferOut([[130, 0, 194, 1, 0,])
+transferOut([0, 254])
+transferOut([[17, 128, 150, 152, 0])
+transferOut([2, 0])
+transferOut([17, 128, 150, 152, 0])
+transferOut([4, 0, 80, 0, 0, 0,])
+transferOut([19, 0,])
+transferOut( [18, 56, 255, 255, 255, 255, 255, 255, 255])
+transferOut([18, 16, 158, 231,])
+transferOut([18, 56, 255, 255, 255, 255, 255, 255, 255])
+transferOut([18, 8, 0])
+transferOut([5, 0, 1, 2,])
+transferOut([5, 0, 4, 0, 4, 0, 0, 0, 8, 0, 0, 0, 0, 4, 0, 0, 0, 80, 6])
+transferOut([5, 0, 4, 4, 0, 15, 0, 80, 8, 0, 0, 0, 0, 8, 240, 0, 0, 0, 15])
+transferOut([5, 0, 4, 8, 0, 0, 0, 0, 1, 82, 0, 0, 35, 5, 0, 32, 0, 224, 13, 2, 0, 0, 0])
+transferOut([5, 0, 4, 8, 0, 0, 0, 0, 1, 82, 0, 0, 35, 5, 8, 32, 0, 224, 13, 0, 0, 0, 0])
+transferOut([[5, 0, 4, 8, 0, 0, 0, 0, 1, 82, 0, 0, 35, 5, 12, 32, 0, 224, 13, 0, 0, 0, 0])
+transferOut([[5, 0, 4, 8, 0, 0, 0, 0, 1, 82, 0, 0, 35, 5, 16, 32, 0, 224, 13, 0, 0, 0, 0])
+transferOut([5, 0, 4, 8, 0, 0, 0, 0, 1, 82, 0, 0, 35, 5, 20, 32, 0, 224, 13, 0, 0, 0, 0])
+transferOut([5, 0, 4, 8, 0, 0, 0, 0, 1, 82, 0, 0, 35, 5, 24, 32, 0, 224, 13, 0, 0, 0, 0])
+transferOut([5, 0, 4, 8, 0, 0, 0, 0, 1, 82, 0, 0, 35, 5, 28, 32, 0, 224, 13, 0, 0, 0, 0])
+transferOut([5, 0, 4, 8, 0, 0, 0, 0, 1, 82, 0, 0, 35, 5, 0, 237, 0, 224, 15])
+transferOut([5, 0, 4, 8, 0, 0, 0, 0, 1, 82, 0, 0, 35, 5, 240, 237, 0, 224, 13, 3, 0, 95, 160])
+transferOut([5, 0, 4, 8, 0, 0, 0, 0, 1, 82, 0, 0, 35, 5, 252, 237, 0, 224, 15])
+
+
+
+
+
+
+
+
+
+
+
+
+selectConfiguration(1)
+claimInterface(5)  (or 4 for older uBits)
+transferOut([5, 0, 4, 8, 0, 0, 0, 0, 1, 82, 0, 0, 35, 5, 240, 237, 0, 224, 13, 3, 0, 95, 160])
+    [5, 0, 4, 8, 0, 0, 0, 0, 1, 82, 0, 0, 35, 5, 240, 237, 0, 224, 13, 3, 0, 95, 160]
+    5 =Read/write to CoreSight register
+      = 0 Device Index 
+      4 requests
+          8:, 0, 0, 0, 0,     Reg[0b1000] = 0
+          1: 82, 0, 0, 35,    AP = 587202642 (or 1375731747)
+          5: 240, 237, 0, 224, 
+          13:, 3, 0, 95, 160
+
+
+
+
+transferOut([0, 4,])
+transferOut([128])
+transferOut([[130, 0, 194, 1, 0,])
+transferOut([0, 254])
+transferOut([[17, 128, 150, 152, 0])
+transferOut([2, 0])
+transferOut([17, 128, 150, 152, 0])
+transferOut([4, 0, 80, 0, 0, 0,])
+transferOut([19, 0,])
+transferOut( [18, 56, 255, 255, 255, 255, 255, 255, 255])
+transferOut([18, 16, 158, 231,])
+transferOut([18, 56, 255, 255, 255, 255, 255, 255, 255])
+transferOut([18, 8, 0])
+transferOut([5, 0, 1, 2,])
+transferOut([5, 0, 4, 0, 4, 0, 0, 0, 8, 0, 0, 0, 0, 4, 0, 0, 0, 80, 6])
+transferOut([5, 0, 4, 4, 0, 15, 0, 80, 8, 0, 0, 0, 0, 8, 240, 0, 0, 0, 15])
+transferOut([5, 0, 4, 8, 0, 0, 0, 0, 1, 82, 0, 0, 35, 5, 0, 32, 0, 224, 13, 2, 0, 0, 0])
+transferOut([5, 0, 4, 8, 0, 0, 0, 0, 1, 82, 0, 0, 35, 5, 8, 32, 0, 224, 13, 0, 0, 0, 0])
+transferOut([[5, 0, 4, 8, 0, 0, 0, 0, 1, 82, 0, 0, 35, 5, 12, 32, 0, 224, 13, 0, 0, 0, 0])
+transferOut([[5, 0, 4, 8, 0, 0, 0, 0, 1, 82, 0, 0, 35, 5, 16, 32, 0, 224, 13, 0, 0, 0, 0])
+transferOut([5, 0, 4, 8, 0, 0, 0, 0, 1, 82, 0, 0, 35, 5, 20, 32, 0, 224, 13, 0, 0, 0, 0])
+transferOut([5, 0, 4, 8, 0, 0, 0, 0, 1, 82, 0, 0, 35, 5, 24, 32, 0, 224, 13, 0, 0, 0, 0])
+transferOut([5, 0, 4, 8, 0, 0, 0, 0, 1, 82, 0, 0, 35, 5, 28, 32, 0, 224, 13, 0, 0, 0, 0])
+transferOut([5, 0, 4, 8, 0, 0, 0, 0, 1, 82, 0, 0, 35, 5, 0, 237, 0, 224, 15])
+transferOut([5, 0, 4, 8, 0, 0, 0, 0, 1, 82, 0, 0, 35, 5, 240, 237, 0, 224, 13, 3, 0, 95, 160])
+transferOut([5, 0, 4, 8, 0, 0, 0, 0, 1, 82, 0, 0, 35, 5, 252, 237, 0, 224, 15])
+
+
+
+
+
+
+DAPLink
+
+Transfer out
+[17, 128, 150, 152, 0,
+[2, 0]
+[[4, 0, 100, 0, 0, 0,]
+[[18, 56, 255, 255, 255, 255, 255, 255, 255,]
+[[18, 16, 158, 231]
+[18, 56, 255, 255, 255, 255, 255, 255, 255]
+[[18, 8, 0, ]
+[[129,]   or [131]
+[3]
+
+
+selectConfig(1)
+claimINterface(5)
+[[17, 128, 150, 152, 0,]
+
+
+
+
 
 # To Re-generate API Docs
 
