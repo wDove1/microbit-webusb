@@ -27,7 +27,7 @@
     </div>
 </body>
 
-<!--  Include the webusb support library  -->
+<!--  Include the DAP support library and WebUSB support -->
 <script src="ubitwebusb.js"></script>
 
 <script>
@@ -73,7 +73,7 @@
 
     // Make the "go" button open the request devices box
     document.getElementById("connect").addEventListener("click", () => uBitConnectDevice(uBitEventHandler))
-    document.getElementById("disconnect").addEventListener("click", () => connectedDevices.forEach(d=>uBitDisconnect(d)))
+    document.getElementById("disconnect").addEventListener("click", () =>  { connectedDevices.forEach(d=>uBitDisconnect(d)); connectedDevices = [];})
     document.getElementById("clear").addEventListener("click", () => { document.getElementById("console").innerHTML = "" })
     document.getElementById("send").addEventListener("click", () => { connectedDevices.forEach( d=>uBitSend(d, "Test")) })
 

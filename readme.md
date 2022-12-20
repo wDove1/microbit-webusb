@@ -165,7 +165,9 @@ Get the DAPJS file:
 ```
 mkdir temp
 cd temp
-dcp node_modules/dapjs/dist/dap.umd.js ..
+npm install dapjs
+cp node_modules/dapjs/dist/dap.umd.js ..
+cp node_modules/dapjs/dist/dap.umd.js.map ..
 cd ..
 rm -Rf temp
 ```
