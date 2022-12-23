@@ -18,8 +18,6 @@ async function uBitOpenDevice(device, callback) {
     const parser = /([^.:]*)\.*([^:]+|):(.*)/   // Parser to identify time-series format (graph:info or graph.series:info)
 
     target.on(DAPjs.DAPLink.EVENT_SERIAL_DATA, data => {
-        // console.log("Data:")
-        // console.dir(data)
         buffer += data;
         let firstNewline = buffer.indexOf("\n")
         while(firstNewline>=0) {
@@ -56,7 +54,7 @@ async function uBitOpenDevice(device, callback) {
         }
     });
     await target.connect();
-    const baud = await target.getSerialBaudrate()
+    await target.setSerialBaudrate(115200)
     //await target.disconnect();
     device.target = target;   // Store the target in the device object (needed for write)
     callback("connected", device, null)    
@@ -73,6 +71,7 @@ async function uBitDisconnect(device) {
     if(device && device.opened) {
         await device.target.stopSerialRead()
         await device.target.disconnect()
+        await device.close()
         device.target = null
     }
 }
