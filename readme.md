@@ -16,13 +16,15 @@ This provides an API for interacting with the micro:bit over USB.  It also inclu
   * [`docs`](https://bsiever.github.io/microbit-webusb/docs/): Directory including JSDoc documentation
     * `jsdoc.md`: Initial page / readme for JSDocs
   * `_config.yml`: GitHub pages config
+  * `dap.umd.js`: [DAP.js](https://github.com/ARMmbed/dapjs) version 2.3
+    * `dap.umd.js.map`: Source map for above. 
   * [`LICENSE`](./LICENSE): MIT License
 
 # Overall Setup
 
 1. Upgrade Micro:bit to latest firmware
 2. Program the Micro:bit with one of the example programs that generates serial data
-3. Setup a Web Server & Open the project's page to run the sample application ([`index.html`](./index.html)) ([Live Example of it](https://bsiever.github.io/microbit-webusb/))
+3. Setup a Web Server & Open the project's page to run the sample application ([`index.html`](./index.html)) ([Live Example of it](https://bsiever.github.io/microbit-webusb/))  (Can just open the `index.html` locally with current version)
 
 ## Upgrade Micro:bit to latest firmware
 
@@ -81,6 +83,10 @@ basic.forever(function () {
 10. See what data looks like with Makecode's existing graphs via the `Console Simulator` or `Console Device` buttons in the simulator.
 11. Unplug/re-plug Micro:bit (to Un-Pair device)
 
+
+# Open `index.html` locally 
+
+1. In browser go to file>open and browse to `index.html` or right-click on `index.html` and use file navigation to open in a browser. 
 # Setup a Web Server
 
 1. Install a local web server
@@ -113,6 +119,8 @@ There are three main functions:
 See [`index.html`](./index.html) for a complete example application.
 
 # Technical Details and Notes
+
+Now uses [DAP.js](https://github.com/ARMmbed/dapjs) for DAPLink (serial) interactions and events.
 
 ## Communication and App Message Formats
 
@@ -172,8 +180,15 @@ cd ..
 rm -Rf temp
 ```
 
+# To Re-generate API Docs
+
+`jsdoc ubitwebusb.js -r jsdoc.md -d docs`
 
 
+
+---
+# Below is old / historical data from prior versions
+---
 # Below is old info from sniffing out USB UART
 
 ## Micro:bit USB Configuration Sequence
@@ -414,118 +429,3 @@ Connecting...
 
 
 
-// https://github.com/ARMmbed/DAPLink/blob/main/source/daplink/cmsis-dap/DAP.h
-
-selectConfiguration(1)
-claimInterface(5)  (or 4 for older uBits)
-transferOut([5, 0, 4, 8, 0, 0, 0, 0, 1, 82, 0, 0, 35, 5, 240, 237, 0, 224, 13, 3, 0, 95, 160])
-transferOut([0, 4,])
-transferOut([128])
-transferOut([[130, 0, 194, 1, 0,])
-transferOut([0, 254])
-transferOut([[17, 128, 150, 152, 0])
-transferOut([2, 0])
-transferOut([17, 128, 150, 152, 0])
-transferOut([4, 0, 80, 0, 0, 0,])
-transferOut([19, 0,])
-transferOut( [18, 56, 255, 255, 255, 255, 255, 255, 255])
-transferOut([18, 16, 158, 231,])
-transferOut([18, 56, 255, 255, 255, 255, 255, 255, 255])
-transferOut([18, 8, 0])
-transferOut([5, 0, 1, 2,])
-transferOut([5, 0, 4, 0, 4, 0, 0, 0, 8, 0, 0, 0, 0, 4, 0, 0, 0, 80, 6])
-transferOut([5, 0, 4, 4, 0, 15, 0, 80, 8, 0, 0, 0, 0, 8, 240, 0, 0, 0, 15])
-transferOut([5, 0, 4, 8, 0, 0, 0, 0, 1, 82, 0, 0, 35, 5, 0, 32, 0, 224, 13, 2, 0, 0, 0])
-transferOut([5, 0, 4, 8, 0, 0, 0, 0, 1, 82, 0, 0, 35, 5, 8, 32, 0, 224, 13, 0, 0, 0, 0])
-transferOut([[5, 0, 4, 8, 0, 0, 0, 0, 1, 82, 0, 0, 35, 5, 12, 32, 0, 224, 13, 0, 0, 0, 0])
-transferOut([[5, 0, 4, 8, 0, 0, 0, 0, 1, 82, 0, 0, 35, 5, 16, 32, 0, 224, 13, 0, 0, 0, 0])
-transferOut([5, 0, 4, 8, 0, 0, 0, 0, 1, 82, 0, 0, 35, 5, 20, 32, 0, 224, 13, 0, 0, 0, 0])
-transferOut([5, 0, 4, 8, 0, 0, 0, 0, 1, 82, 0, 0, 35, 5, 24, 32, 0, 224, 13, 0, 0, 0, 0])
-transferOut([5, 0, 4, 8, 0, 0, 0, 0, 1, 82, 0, 0, 35, 5, 28, 32, 0, 224, 13, 0, 0, 0, 0])
-transferOut([5, 0, 4, 8, 0, 0, 0, 0, 1, 82, 0, 0, 35, 5, 0, 237, 0, 224, 15])
-transferOut([5, 0, 4, 8, 0, 0, 0, 0, 1, 82, 0, 0, 35, 5, 240, 237, 0, 224, 13, 3, 0, 95, 160])
-transferOut([5, 0, 4, 8, 0, 0, 0, 0, 1, 82, 0, 0, 35, 5, 252, 237, 0, 224, 15])
-
-
-
-
-
-
-
-
-
-
-
-
-selectConfiguration(1)
-claimInterface(5)  (or 4 for older uBits)
-transferOut([5, 0, 4, 8, 0, 0, 0, 0, 1, 82, 0, 0, 35, 5, 240, 237, 0, 224, 13, 3, 0, 95, 160])
-    [5, 0, 4, 8, 0, 0, 0, 0, 1, 82, 0, 0, 35, 5, 240, 237, 0, 224, 13, 3, 0, 95, 160]
-    5 =Read/write to CoreSight register
-      = 0 Device Index 
-      4 requests
-          8:, 0, 0, 0, 0,     Reg[0b1000] = 0
-          1: 82, 0, 0, 35,    AP = 587202642 (or 1375731747)
-          5: 240, 237, 0, 224, 
-          13:, 3, 0, 95, 160
-
-
-
-
-transferOut([0, 4,])
-transferOut([128])
-transferOut([[130, 0, 194, 1, 0,])
-transferOut([0, 254])
-transferOut([[17, 128, 150, 152, 0])
-transferOut([2, 0])
-transferOut([17, 128, 150, 152, 0])
-transferOut([4, 0, 80, 0, 0, 0,])
-transferOut([19, 0,])
-transferOut( [18, 56, 255, 255, 255, 255, 255, 255, 255])
-transferOut([18, 16, 158, 231,])
-transferOut([18, 56, 255, 255, 255, 255, 255, 255, 255])
-transferOut([18, 8, 0])
-transferOut([5, 0, 1, 2,])
-transferOut([5, 0, 4, 0, 4, 0, 0, 0, 8, 0, 0, 0, 0, 4, 0, 0, 0, 80, 6])
-transferOut([5, 0, 4, 4, 0, 15, 0, 80, 8, 0, 0, 0, 0, 8, 240, 0, 0, 0, 15])
-transferOut([5, 0, 4, 8, 0, 0, 0, 0, 1, 82, 0, 0, 35, 5, 0, 32, 0, 224, 13, 2, 0, 0, 0])
-transferOut([5, 0, 4, 8, 0, 0, 0, 0, 1, 82, 0, 0, 35, 5, 8, 32, 0, 224, 13, 0, 0, 0, 0])
-transferOut([[5, 0, 4, 8, 0, 0, 0, 0, 1, 82, 0, 0, 35, 5, 12, 32, 0, 224, 13, 0, 0, 0, 0])
-transferOut([[5, 0, 4, 8, 0, 0, 0, 0, 1, 82, 0, 0, 35, 5, 16, 32, 0, 224, 13, 0, 0, 0, 0])
-transferOut([5, 0, 4, 8, 0, 0, 0, 0, 1, 82, 0, 0, 35, 5, 20, 32, 0, 224, 13, 0, 0, 0, 0])
-transferOut([5, 0, 4, 8, 0, 0, 0, 0, 1, 82, 0, 0, 35, 5, 24, 32, 0, 224, 13, 0, 0, 0, 0])
-transferOut([5, 0, 4, 8, 0, 0, 0, 0, 1, 82, 0, 0, 35, 5, 28, 32, 0, 224, 13, 0, 0, 0, 0])
-transferOut([5, 0, 4, 8, 0, 0, 0, 0, 1, 82, 0, 0, 35, 5, 0, 237, 0, 224, 15])
-transferOut([5, 0, 4, 8, 0, 0, 0, 0, 1, 82, 0, 0, 35, 5, 240, 237, 0, 224, 13, 3, 0, 95, 160])
-transferOut([5, 0, 4, 8, 0, 0, 0, 0, 1, 82, 0, 0, 35, 5, 252, 237, 0, 224, 15])
-
-
-
-
-
-
-DAPLink
-
-Transfer out
-[17, 128, 150, 152, 0,
-[2, 0]
-[[4, 0, 100, 0, 0, 0,]
-[[18, 56, 255, 255, 255, 255, 255, 255, 255,]
-[[18, 16, 158, 231]
-[18, 56, 255, 255, 255, 255, 255, 255, 255]
-[[18, 8, 0, ]
-[[129,]   or [131]
-[3]
-
-
-selectConfig(1)
-claimINterface(5)
-[[17, 128, 150, 152, 0,]
-
-
-
-
-
-# To Re-generate API Docs
-
-`jsdoc ubitwebusb.js -r jsdoc.md -d docs`

@@ -16,7 +16,7 @@ async function uBitOpenDevice(device, callback) {
     const target = new DAPjs.DAPLink(transport)
     let buffer=""                               // Buffer of accumulated messages
     const parser = /([^.:]*)\.*([^:]+|):(.*)/   // Parser to identify time-series format (graph:info or graph.series:info)
-
+        
     target.on(DAPjs.DAPLink.EVENT_SERIAL_DATA, data => {
         buffer += data;
         let firstNewline = buffer.indexOf("\n")
@@ -57,6 +57,7 @@ async function uBitOpenDevice(device, callback) {
     await target.setSerialBaudrate(115200)
     //await target.disconnect();
     device.target = target;   // Store the target in the device object (needed for write)
+    device.callback = callback // Store the callback for the device
     callback("connected", device, null)    
     target.startSerialRead()
     return Promise.resolve()
@@ -68,10 +69,25 @@ async function uBitOpenDevice(device, callback) {
  * @param {USBDevice} device to disconnect from 
  */
 async function uBitDisconnect(device) {
-    if(device && device.opened) {
-        await device.target.stopSerialRead()
-        await device.target.disconnect()
-        await device.close()
+    if(device) {
+        try {
+            await device.target.stopSerialRead()
+        } catch(error) {
+            // Failure may mean already stopped
+        }
+        try {
+            await device.target.disconnect()
+        } catch(error) {
+            // Failure may mean already disconnected
+        }
+        try {
+            await device.close()
+        } catch(error) {
+            // Failure may mean already closed
+        }
+        // Call the callback with notification of disconnect
+        device.callback("disconnected", device, null)
+        device.callback = null
         device.target = null
     }
 }
@@ -121,6 +137,7 @@ function uBitConnectDevice(callback) {
     navigator.usb.requestDevice({filters: [{ vendorId: MICROBIT_VENDOR_ID, productId: MICROBIT_PRODUCT_ID }]})
         .then(  d => { if(!d.opened) uBitOpenDevice(d, callback)} )
         .catch( () => callback("connection failure", null, null))
+    
 }
 
 //stackoverflow.com/questions/5892845/how-to-load-one-javascript-file-from-another
@@ -128,3 +145,9 @@ var newScript = document.createElement('script');
 newScript.type = 'text/javascript';
 newScript.src = 'dap.umd.js';
 document.getElementsByTagName('head')[0].appendChild(newScript);
+
+navigator.usb.addEventListener('disconnect', (event) => {
+    if("device" in event && "callback" in event.device && event.device.callback!=null && event.device.productName.includes("micro:bit")) {
+        uBitDisconnect(event.device)
+    }
+ })
