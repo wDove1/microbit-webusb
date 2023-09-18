@@ -35,7 +35,16 @@
     // Append a line to the console frame
     function consolePrintln(message) {
         var con = document.getElementById("console")
-        con.innerHTML += "<br/>"+message
+        con.appendChild(document.createTextNode(message))
+        con.appendChild(document.createElement("br"))
+        con.scrollTop = con.scrollHeight
+    }
+    function consolePrintlnBold(message) {
+        var con = document.getElementById("console")
+        let boldItem = document.createElement("b")
+        boldItem.innerHTML = message
+        con.appendChild(boldItem)
+        con.appendChild(document.createElement("br"))
         con.scrollTop = con.scrollHeight
     }
 
@@ -46,18 +55,18 @@
     function uBitEventHandler(reason, device, data) {
         switch(reason) {
             case "connected":
-                consolePrintln("<b>Connected!</b>")
+                consolePrintlnBold("Connected!")
                 connectedDevices.push(device)
                 break
             case "disconnected":
-                consolePrintln("<b>Disconnected</b>")
+            consolePrintlnBold("Disconnected")
                 connectedDevices = connectedDevices.filter( v => v != device)
                 break
             case "connection failure":
-                consolePrintln("<b>Connection Failure</b>")
+            consolePrintlnBold("Connection Failure")
                 break
             case "error":
-                consolePrintln("<b>Error</b>")
+            consolePrintlnBold("Error")
                 break
             case "console":
                 consolePrintln("Console Data: " + data.data)
