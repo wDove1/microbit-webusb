@@ -14,13 +14,28 @@ const MICROBIT_PRODUCT_ID = 0x0204
 async function uBitOpenDevice(device, callback) {
     const transport = new DAPjs.WebUSB(device)
     const target = new DAPjs.DAPLink(transport)
-    let buffer=""                               // Buffer of accumulated messages
-    const parser = /([^.:]*)\.*([^:]+|):(.*)/   // Parser to identify time-series format (graph:info or graph.series:info)
-        
-    target.on(DAPjs.DAPLink.EVENT_SERIAL_DATA, data => {
-        buffer += data;
+    await target.connect()
+    await target.setSerialBaudrate(115200)
+    device.target = target;   // Store the target in the device object (needed for write)
+    device.callback = callback // Store the callback for the device
+    callback("connected", device, null)    
+
+    // Cite: https://stackoverflow.com/questions/21647928/javascript-unicode-string-to-hex
+    // String.prototype.hexEncode = function(){
+    //     var hex, i;
+    
+    //     var result = "";
+    //     for (i=0; i<this.length; i++) {
+    //         hex = this.charCodeAt(i).toString(16);
+    //         result += ("000"+hex).slice(-4);
+    //     }
+    
+    //     return result
+    // }
+
+    let lineParser = () => {
         let firstNewline = buffer.indexOf("\n")
-        while(firstNewline>=0) {
+        if(firstNewline>=0) {
             let messageToNewline = buffer.slice(0,firstNewline)
             let now = new Date() 
             // Deal with line
@@ -47,19 +62,28 @@ async function uBitOpenDevice(device, callback) {
             } else {
                 // Not a graph format.  Send it as a console bundle
                 let dataBundle = {time: now, data: messageToNewline}
-                callback("console", device, dataBundle)
+               callback("console", device, dataBundle)
             }
             buffer = buffer.slice(firstNewline+1)  // Advance to after newline
             firstNewline = buffer.indexOf("\n")    // See if there's more data
+            // Schedule more parsing
+            if(firstNewline>=0) {
+                setTimeout(lineParser, 10)                        // If so, parse it
+            }
         }
+
+    }
+
+    let buffer=""                               // Buffer of accumulated messages
+    const parser = /([^.:]*)\.*([^:]+|):(.*)/   // Parser to identify time-series format (graph:info or graph.series:info)
+    const ws = / *\r\n/g
+    target.on(DAPjs.DAPLink.EVENT_SERIAL_DATA, data => {
+        buffer += data;
+        buffer = buffer.replace(ws, "\n")
+        if(data.includes("\n"))
+            setTimeout(lineParser, 10) 
     });
-    await target.connect();
-    await target.setSerialBaudrate(115200)
-    //await target.disconnect();
-    device.target = target;   // Store the target in the device object (needed for write)
-    device.callback = callback // Store the callback for the device
-    callback("connected", device, null)    
-    target.startSerialRead()
+    target.startSerialRead(1)
     return Promise.resolve()
 }
 
