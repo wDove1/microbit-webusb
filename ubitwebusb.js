@@ -1,8 +1,43 @@
-
 /*
  * JavaScript functions for interacting with micro:bit microcontrollers over WebUSB
  * (Only works in Chrome browsers;  Pages must be either HTTPS or local)
  */
+
+
+let dapJsLoadPromise
+
+/**
+ * Ensure the DAP.js UMD bundle is loaded and return its global object.
+ * Loading happens once; subsequent calls receive the cached instance.
+ */
+async function loadDAPjs() {
+    if (typeof window === 'undefined') {
+        throw new Error('DAP.js requires a browser environment with WebUSB support')
+    }
+
+    if (window.DAPjs) {
+        return window.DAPjs
+    }
+
+    if (!dapJsLoadPromise) {
+        dapJsLoadPromise = new Promise((resolve, reject) => {
+            const script = document.createElement('script')
+            script.type = 'text/javascript'
+            script.src = new URL('./dap.umd.js', import.meta.url).href
+            script.onload = () => {
+                if (window.DAPjs) {
+                    resolve(window.DAPjs)
+                } else {
+                    reject(new Error('DAP.js script loaded but failed to expose the global DAPjs object'))
+                }
+            }
+            script.onerror = () => reject(new Error('Failed to load DAP.js bundle'))
+            document.head.appendChild(script)
+        })
+    }
+
+    return dapJsLoadPromise
+}
 
 
 const MICROBIT_VENDOR_ID = 0x0d28
@@ -12,13 +47,29 @@ const MICROBIT_PRODUCT_ID = 0x0204
    Open and configure a selected device and then start the read-loop
  */
 async function uBitOpenDevice(device, callback) {
-    const transport = new DAPjs.WebUSB(device)
-    const target = new DAPjs.DAPLink(transport)
-    await target.connect()
-    await target.setSerialBaudrate(115200)
-    device.target = target;   // Store the target in the device object (needed for write)
-    device.callback = callback // Store the callback for the device
-    callback("connected", device, null)    
+    let target
+    let DAPjs
+    try {
+        DAPjs = await loadDAPjs()
+        const transport = new DAPjs.WebUSB(device)
+        target = new DAPjs.DAPLink(transport)
+        await target.connect()
+        await target.setSerialBaudrate(115200)
+        device.target = target;   // Store the target in the device object (needed for write)
+        device.callback = callback // Store the callback for the device
+        callback("connected", device, null)
+    } catch (error) {
+        console.error('Failed to initialise micro:bit WebUSB session', error)
+        if (target) {
+            try {
+                await target.disconnect()
+            } catch {
+                /* ignore disconnect failures during error handling */
+            }
+        }
+        callback("error", device, error)
+        throw error
+    }
 
     // Cite: https://stackoverflow.com/questions/21647928/javascript-unicode-string-to-hex
     // String.prototype.hexEncode = function(){
@@ -92,7 +143,7 @@ async function uBitOpenDevice(device, callback) {
  * Disconnect from a device 
  * @param {USBDevice} device to disconnect from 
  */
-async function uBitDisconnect(device) {
+export async function uBitDisconnect(device) {
     if(device) {
         try {
             await device.target.stopSerialRead()
@@ -157,18 +208,23 @@ function uBitSend(device, data) {
  * 
  * @param {uBitEventCallback} callback function for device events
  */
-function uBitConnectDevice(callback) { 
+export function uBitConnectDevice(callback) { 
     navigator.usb.requestDevice({filters: [{ vendorId: MICROBIT_VENDOR_ID, productId: MICROBIT_PRODUCT_ID }]})
-        .then(  d => { if(!d.opened) uBitOpenDevice(d, callback)} )
-        .catch( () => callback("connection failure", null, null))
+        .then(async device => {
+            if (device.opened) {
+                callback("error", device, new Error("Selected device is already opened by another application"))
+                return
+            }
+            try {
+                await uBitOpenDevice(device, callback)
+            } catch (error) {
+                // uBitOpenDevice already invoked the callback with details, just ensure the promise is handled
+                console.warn('micro:bit connection attempt failed', error)
+            }
+        })
+        .catch(error => callback("connection failure", null, error))
     
 }
-
-//stackoverflow.com/questions/5892845/how-to-load-one-javascript-file-from-another
-var newScript = document.createElement('script');
-newScript.type = 'text/javascript';
-newScript.src = 'dap.umd.js';
-document.getElementsByTagName('head')[0].appendChild(newScript);
 
 navigator.usb.addEventListener('disconnect', (event) => {
     if("device" in event && "callback" in event.device && event.device.callback!=null && event.device.productName.includes("micro:bit")) {
