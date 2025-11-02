@@ -172,7 +172,7 @@ export async function uBitDisconnect(device) {
  * @param {USBDevice} device 
  * @param {string} data to send (must not include newlines)
  */
-function uBitSend(device, data) {
+export function uBitSend(device, data) {
     if(!device.opened)
         return
     let fullLine = data+'\n'
