@@ -172,11 +172,19 @@ export async function uBitDisconnect(device) {
  * @param {USBDevice} device 
  * @param {string} data to send (must not include newlines)
  */
-export function uBitSend(device, data) {
+export function uBitSend(device, data, maxOutputLength) {
     if(!device.opened)
         return
     let fullLine = data+'\n'
-    device.target.serialWrite(fullLine)
+    if(fullLine.length > maxOutputLength) {
+        const chunkSize = 10;
+        for (let i = 0; i < fullLine.length; i += chunkSize) {
+            const chunk = fullLine.slice(i, i + chunkSize);
+            device.target.serialWrite(chunk);
+        }
+    } else {
+        device.target.serialWrite(fullLine)
+    }
 }
 
 
