@@ -177,7 +177,7 @@ export function uBitSend(device, data, maxOutputLength) {
         return
     let fullLine = data+'\n'
     if(fullLine.length > maxOutputLength) {
-        const chunkSize = 10;
+        const chunkSize = maxOutputLength;
         for (let i = 0; i < fullLine.length; i += chunkSize) {
             const chunk = fullLine.slice(i, i + chunkSize);
             device.target.serialWrite(chunk);
