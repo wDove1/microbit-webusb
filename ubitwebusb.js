@@ -217,6 +217,10 @@ export function uBitSend(device, data, maxOutputLength) {
  * @param {uBitEventCallback} callback function for device events
  */
 export function uBitConnectDevice(callback) { 
+    if (!('usb' in navigator) || !navigator.usb) {
+        callback("connection failure", null, new Error("WebUSB API unavailable. Use a supported browser over HTTPS or localhost."))
+        return
+    }
     navigator.usb.requestDevice({filters: [{ vendorId: MICROBIT_VENDOR_ID, productId: MICROBIT_PRODUCT_ID }]})
         .then(async device => {
             if (device.opened) {
@@ -234,8 +238,10 @@ export function uBitConnectDevice(callback) {
     
 }
 
-navigator.usb.addEventListener('disconnect', (event) => {
-    if("device" in event && "callback" in event.device && event.device.callback!=null && event.device.productName.includes("micro:bit")) {
-        uBitDisconnect(event.device)
-    }
- })
+if ('usb' in navigator && navigator.usb) {
+    navigator.usb.addEventListener('disconnect', (event) => {
+        if("device" in event && "callback" in event.device && event.device.callback!=null && event.device.productName.includes("micro:bit")) {
+            uBitDisconnect(event.device)
+        }
+     })
+}
